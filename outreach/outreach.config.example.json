@@ -1,0 +1,30 @@
+{
+  "project": "Siti per attività locali",
+  "area": "SOSTITUISCI con la tua città",
+  "center": { "latitude": 41.9028, "longitude": 12.4964 },
+  "radiusMeters": 15000,
+  "minScore": 55,
+  "maxPerCategory": 40,
+  "categories": [
+    "parrucchiere",
+    "barbiere",
+    "centro estetico",
+    "ristorante",
+    "pizzeria",
+    "bar",
+    "officina meccanica",
+    "gommista",
+    "idraulico",
+    "elettricista",
+    "palestra",
+    "studio dentistico",
+    "fisioterapista",
+    "toelettatura cani",
+    "fioraio",
+    "panificio",
+    "macelleria",
+    "autolavaggio",
+    "tabaccheria",
+    "agenzia immobiliare"
+  ]
+}
