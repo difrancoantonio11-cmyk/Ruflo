@@ -121,6 +121,9 @@ export async function qualify(
 
   const reviews = place.userRatingCount ?? 0;
   if (reviews >= 10) signals.push('molte-recensioni');
+  // The phone number is the channel most of these businesses actually answer on,
+  // so its presence is worth showing next to the rest.
+  if (place.nationalPhoneNumber) signals.push('ha-telefono');
 
   // Base score by how badly they need the offer, weighted so that a business
   // already investing effort online outranks one that is simply absent.

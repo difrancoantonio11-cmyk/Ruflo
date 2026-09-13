@@ -1,85 +1,80 @@
-# @ruflo/outreach — Fase 1
+# @ruflo/outreach
 
-Trova attività locali **senza sito web**, le qualifica, le scrive su Notion e ti manda
-una mail con tre bottoni per decidere quali vale la pena costruire.
+Trova attività locali **senza sito web**, le qualifica e le scrive su Notion.
 
-Non manda nulla ai clienti. In questa fase il sistema si ferma prima del contatto:
-il suo lavoro è togliere di mezzo la ricerca su Google e la raccolta dei dati.
+Non costruisce siti e non prepara demo: quella parte è fuori da questo progetto.
 
-## Il flusso
+## Il disegno completo
 
 ```
-outreach scout   →  cerca su Google Places, qualifica, scrive i nuovi lead su Notion
-outreach digest  →  ti manda la mail con i lead in attesa (Cancello A)
-        ↓ clicchi COSTRUISCI
-outreach serve   →  riceve il click, segna "Approvato" e scarica il kit del sito
+1. Trova le attività senza sito                      → software  (fatto)
+2. Cerca l'email sulla loro pagina Facebook/Instagram → software  (da fare)
+3. Manda l'email, con template, max ~20 al giorno     → software  (da fare)
+4. Legge le risposte e aggiorna lo stato              → software  (da fare)
+5. Report                                             → software  (da fare)
 ```
 
-## Setup (una volta sola)
+I lead con solo il telefono restano su Notion e li lavori a mano: nessun
+software può ascoltare una telefonata al posto tuo.
 
-**1. Google Places**
-Su [console.cloud.google.com](https://console.cloud.google.com): crea un progetto,
-abilita **Places API (New)**, genera una chiave API. Metti un budget di allerta —
-le chiamate si pagano a consumo.
+## Cosa c'è adesso
 
-**2. Notion**
-Crea un'integrazione su [notion.so/my-integrations](https://www.notion.so/my-integrations),
-copia il token. Crea una pagina vuota che farà da contenitore, aprila,
-`···` → *Connessioni* → aggiungi la tua integrazione. Copia l'id della pagina
-dall'URL (i 32 caratteri finali).
+| Comando | Cosa fa |
+|---|---|
+| `setup` | crea i 5 database su Notion (una volta sola) |
+| `scout` | cerca su Google Places, qualifica, scrive i nuovi lead su Notion |
+| `digest` | manda una mail con i lead in attesa e tre bottoni |
+| `serve` | riceve i click di quella mail |
+| `suppress` | aggiunge un contatto alla lista "non contattare mai" |
 
-**3. Configurazione**
+`digest` e `serve` sono in attesa di una decisione: con l'invio automatico
+probabilmente non servono più.
+
+## Setup
+
+**Google Places** — su console.cloud.google.com: progetto, abilita *Places API
+(New)*, crea una chiave da *API e servizi → Credenziali*, limitala a Places, e
+metti un tetto di quota giornaliero.
+
+**Notion** — integrazione su notion.so/my-integrations, poi condividi con essa
+una pagina contenitore e copia l'id della pagina dall'URL.
 
 ```bash
-cp .env.example .env          # riempi GOOGLE_PLACES_API_KEY, NOTION_TOKEN, NOTION_PARENT_PAGE_ID
-openssl rand -hex 32          # incolla il risultato in APPROVAL_SECRET
 npm install
-npm run outreach setup        # crea i 5 database e stampa gli id da incollare nel .env
+cp .env.example .env          # chiave Google, token Notion, id pagina
+openssl rand -hex 32          # → APPROVAL_SECRET
+npm run outreach setup        # crea i database, stampa gli id per il .env
 cp outreach.config.example.json outreach.config.json
 ```
 
-In `outreach.config.json` metti la **tua** zona: `area`, `center` (latitudine e
-longitudine — le prendi da Google Maps col tasto destro sul punto) e `radiusMeters`.
+In `outreach.config.json` metti la tua zona: `area`, `center` (coordinate da
+Google Maps, tasto destro sul punto) e `radiusMeters`.
 
-## Uso quotidiano
-
-```bash
-npm run outreach scout --  --dry      # prova a vuoto: cerca e qualifica, non scrive nulla
-npm run outreach scout                # scrive i nuovi lead su Notion
-npm run outreach digest -- --limit 10 # ti manda i 10 migliori da valutare
-npm run outreach serve                # tieni acceso: riceve i click della mail
-```
-
-## Cliccare i bottoni dal telefono
-
-`serve` ascolta solo in locale. Per usarlo dal telefono serve un indirizzo pubblico:
+## Uso
 
 ```bash
-cloudflared tunnel --url http://localhost:8787
+npm run outreach scout -- --dry   # cerca e qualifica, non scrive nulla
+npm run outreach scout            # scrive i nuovi lead su Notion
+npm test
 ```
 
-Copia l'URL che stampa dentro `PUBLIC_BASE_URL` nel `.env` e rilancia `digest`.
-Senza tunnel i bottoni funzionano solo dal computer sulla stessa rete.
+Nota: `--dry` non evita le chiamate a Google, evita solo la scrittura su Notion.
 
-## Cosa c'è dentro
+## Com'è fatto
 
 | File | Cosa fa |
 |---|---|
-| `src/scout/places.ts` | client Google Places — campi economici nello scout, campi cari solo per i lead approvati |
+| `src/scout/places.ts` | Google Places, solo i campi della fascia economica |
 | `src/scout/qualify.ts` | le regole: chi ha un sito vero viene scartato, chi ha solo Facebook vale di più di chi non ha nulla |
-| `src/storage/notion.ts` | **l'unico** file che parla con Notion — per cambiare database si riscrive solo questo |
-| `src/storage/seen.ts` | indice locale dei `place_id` già visti: è ciò che impedisce i doppioni |
-| `src/approve/tokens.ts` | link firmati con scadenza: nessun login nella mail, nessun link falsificabile |
-| `src/kit/builder.ts` | scarica foto, orari, recensioni e descrizione in `.data/kits/<nome>/` |
+| `src/storage/notion.ts` | l'unico file che parla con Notion |
+| `src/storage/seen.ts` | indice locale degli id già visti: impedisce i doppioni |
+| `src/approve/tokens.ts` | link firmati con scadenza per i bottoni nelle mail |
 
-```bash
-npm test          # regole di qualificazione e sicurezza dei token
-npm run typecheck
-```
+## Prima del primo invio ai clienti
 
-## Limiti noti di questa fase
+Due cose che non servono finché le mail le mandi a te stesso, ma che servono
+il giorno in cui scrivi a un'attività:
 
-- L'invio ai clienti non è implementato (Fase 3). Il `Cancello B` neanche.
-- Le email dei lead non vengono cercate: Places non le restituisce. In questa fase
-  hai il telefono, che per questo target è comunque il canale che risponde.
-- `serve` deve restare acceso perché i bottoni funzionino.
+- un **dominio separato** per l'invio, con SPF, DKIM e DMARC configurati
+- un **link di disiscrizione** reale in ogni messaggio, e chi dice no finisce
+  subito in `suppress`

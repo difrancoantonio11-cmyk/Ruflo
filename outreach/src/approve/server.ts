@@ -12,11 +12,10 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { Config } from '../config.js';
 import { NotionStore } from '../storage/notion.js';
-import { buildKit } from '../kit/builder.js';
 import { verify, type ApprovalAction } from './tokens.js';
 
 const OUTCOMES: Record<ApprovalAction, { title: string; body: string; color: string }> = {
-  build: { title: 'Approvato', body: 'Preparo il kit di costruzione. Lo trovi in .data/kits/', color: '#16a34a' },
+  build: { title: 'Approvato', body: 'Il lead è pronto per il contatto.', color: '#16a34a' },
   reject: { title: 'Scartato', body: 'Non comparirà nei prossimi digest.', color: '#dc2626' },
   later: { title: 'Rimandato', body: 'Resta in coda per il prossimo digest.', color: '#6b7280' },
 };
@@ -83,10 +82,6 @@ export function startApprovalServer(config: Config): void {
       await store.setLeadStatus(claim.leadPageId, 'Scartato');
     } else if (claim.action === 'build') {
       await store.setLeadStatus(claim.leadPageId, 'Approvato');
-      // Answer immediately; the kit can take a while with photo downloads.
-      void buildKit(config.googlePlacesApiKey, config.dataDir, lead.placeId)
-        .then(({ dir }) => console.log(`kit pronto per ${lead.name}: ${dir}`))
-        .catch((err: Error) => console.error(`kit fallito per ${lead.name}: ${err.message}`));
     }
 
     reply(res, 200, page(`${outcome.title}: ${lead.name}`, outcome.body, outcome.color));

@@ -93,12 +93,12 @@ export class NotionStore {
       Telefono: { phone_number: {} },
       Email: { email: {} },
       Social: { url: {} },
-      PlaceID: { rich_text: {} },
+      'ID esterno': { rich_text: {} },
+      Fonte: { select: { options: [{ name: 'google' }, { name: 'osm' }] } },
       Stato: { select: { options: LEAD_STATUSES.map((name, i) => ({ name, color: statusColor(i) })) } },
       Punteggio: { number: { format: 'number' } },
       Segnali: { multi_select: { options: SIGNALS.map((name) => ({ name })) } },
       'Sito rilevato': { url: {} },
-      'URL Demo': { url: {} },
       Maps: { url: {} },
       Recensioni: { number: { format: 'number' } },
       Valutazione: { number: { format: 'number' } },
@@ -178,7 +178,8 @@ export class NotionStore {
       Nome: { title: [{ text: { content: lead.name.slice(0, 200) } }] },
       Categoria: text(lead.category),
       Zona: text(lead.area),
-      PlaceID: text(lead.placeId),
+      'ID esterno': text(lead.externalId),
+      Fonte: { select: { name: lead.source } },
       Stato: { select: { name: 'Da valutare' satisfies LeadStatus } },
       Punteggio: { number: lead.score },
       Segnali: { multi_select: lead.signals.map((name) => ({ name })) },
@@ -186,6 +187,8 @@ export class NotionStore {
       Note: text(lead.address),
     };
     if (lead.phone) properties.Telefono = { phone_number: lead.phone };
+    if (lead.email) properties.Email = { email: lead.email };
+    if (lead.social) properties.Social = { url: lead.social };
     if (lead.website) properties['Sito rilevato'] = { url: lead.website };
     if (lead.mapsUrl) properties.Maps = { url: lead.mapsUrl };
     if (typeof lead.reviewCount === 'number') properties.Recensioni = { number: lead.reviewCount };
@@ -311,12 +314,15 @@ function toStoredLead(page: NotionPage): StoredLead {
   const p = page.properties;
   return {
     pageId: page.id,
-    placeId: readText(p.PlaceID),
+    externalId: readText(p['ID esterno']),
+    source: (p.Fonte?.select?.name ?? 'google') as StoredLead['source'],
     name: readTitle(p.Nome),
     category: readText(p.Categoria),
     area: readText(p.Zona),
     address: readText(p.Note),
     phone: p.Telefono?.phone_number ?? undefined,
+    email: p.Email?.email ?? undefined,
+    social: p.Social?.url ?? undefined,
     website: p['Sito rilevato']?.url ?? undefined,
     mapsUrl: p.Maps?.url ?? undefined,
     rating: p.Valutazione?.number ?? undefined,

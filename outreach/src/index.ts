@@ -17,7 +17,6 @@ import { NotionStore } from './storage/notion.js';
 import { SeenIndex } from './storage/seen.js';
 import { searchArea } from './scout/places.js';
 import { qualify } from './scout/qualify.js';
-import { buildKit } from './kit/builder.js';
 import { renderDigest } from './mail/digest.js';
 import { sendMail } from './mail/send.js';
 import { startApprovalServer } from './approve/server.js';
@@ -54,8 +53,6 @@ async function main(): Promise<void> {
       return cmdDigest(rest);
     case 'serve':
       return cmdServe();
-    case 'kit':
-      return cmdKit(rest);
     case 'suppress':
       return cmdSuppress(rest);
     default:
@@ -181,7 +178,8 @@ async function cmdScout(argv: string[]): Promise<void> {
 
 function toLead(place: Place, score: number, signals: Lead['signals'], scoutConfig: ScoutConfig): Lead {
   return {
-    placeId: place.id,
+    externalId: place.id,
+    source: 'google',
     name: place.displayName?.text ?? place.id,
     category: place.primaryTypeDisplayName?.text ?? place.primaryType ?? '',
     area: scoutConfig.area,
@@ -232,23 +230,8 @@ async function cmdDigest(argv: string[]): Promise<void> {
 // --- serve -----------------------------------------------------------------
 
 async function cmdServe(): Promise<void> {
-  const config = loadConfig([
-    'NOTION_TOKEN',
-    ...NOTION_DB_VARS,
-    'APPROVAL_SECRET',
-    'GOOGLE_PLACES_API_KEY',
-  ]);
+  const config = loadConfig(['NOTION_TOKEN', ...NOTION_DB_VARS, 'APPROVAL_SECRET']);
   startApprovalServer(config);
-}
-
-// --- kit -------------------------------------------------------------------
-
-async function cmdKit(argv: string[]): Promise<void> {
-  const placeId = argv[0];
-  if (!placeId) throw new Error('uso: outreach kit <placeId>');
-  const config = loadConfig(['GOOGLE_PLACES_API_KEY']);
-  const { dir, kit } = await buildKit(config.googlePlacesApiKey, config.dataDir, placeId);
-  console.log(`kit di ${kit.name}: ${dir} (${kit.photos.length} foto, ${kit.reviews.length} recensioni)`);
 }
 
 // --- suppress --------------------------------------------------------------
